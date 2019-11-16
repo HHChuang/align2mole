@@ -99,13 +99,14 @@ def kabsch(coord_var, coord_ref):
 
     # covariance matrix
     covar = np.dot(coord_var.T, coord_ref)
-    print(covar)
+    # print(covar)
 
     # SVD  http://en.wikipedia.org/wiki/Kabsch_algorithm
     v, s, wt = np.linalg.svd(covar)
 
     # Transposition of v,wt
     d = (np.linalg.det(v) * np.linalg.det(wt)) < 0.0
+
     # right-hand coord
     if d:
         s[-1] = -s[-1]

@@ -11,23 +11,20 @@
 !       2. modified structure; shifted.$1                                                       !
 !                                                                                               !
 ! History:                                                                                      !
-! 2019/11/16, Grace, Thanks for the help form Dr. L.P. Wang, UCD.                               !
-!   reference code: https://github.com/leeping/forcebalance/blob/master/src/molecule.py!L692    !
+! 2019/11/16, Grace, Transform python code into Fortran version.                                !
 !                                                                                               !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Program main 
     implicit none
     integer(4)  :: NAtoms
-    character(len=100),allocatable,dimension(:)  :: coord_atoms
-    real(8),allocatable,dimension(:,:)  :: coord_var, coord_ref
-    real(8),allocatable,dimension(:,:)  :: coord_var_cen, coord_ref_cen
     real(8) :: rmsd1, rmsd2
     real(8),dimension(3)    :: trans
-    real(8),dimension(3,3)  :: R = reshape((/ 0.4694443, -0.27083248, -0.8403998, &
-    0.85702105, 0.36878014, 0.35988349, &
-    0.21245462, -0.88918557, 0.40523087 /), (/3,3/))
+    real(8),dimension(3,3)  :: R 
+    real(8),allocatable,dimension(:,:)  :: coord_var, coord_ref
+    real(8),allocatable,dimension(:,:)  :: coord_var_cen, coord_ref_cen
     real(8),allocatable,dimension(:,:)  :: coord_var_shifted
+    character(len=100),allocatable,dimension(:)  :: coord_atoms
 
     ! 1. Import two structures from input arguments
         call get_NAtoms(NAtoms)
@@ -52,7 +49,6 @@ Program main
     
     ! 4. Generate rotation matrix by Kabsch algorithm
         call kabsch(R,NAtoms,coord_var_cen,coord_ref_cen)
-        ! write(*,*) R(1,1:3) 
 
     ! 5. Rotate and translate
         allocate(coord_var_shifted(NAtoms,3))
@@ -235,17 +231,39 @@ subroutine kabsch(R,NAtoms,coord_var,coord_ref)
     ! local variables
     integer(4)  :: i,j,k
     real(8),dimension(3,NAtoms) :: coord_var_t
-    real(8),dimension(3,3)  :: covar
+    real(8),dimension(3,3)  :: covar,v,wt
+    real(8),dimension(3)    :: s
+    logical   :: d
+    real(8) :: det_v, det_wt
 
     ! construct covariance matrix
     call get_matrix_t(NAtoms,coord_var_t,coord_var)
     call get_dot_matrix(covar,3,NAtoms,NAtoms,3,coord_var_t,coord_ref)
 
-    ! SVD TODO:
+    ! SVD 
+    ! https://software.intel.com/sites/products/documentation/doclib/mkl_sa/11/mkl_lapack_examples/dgesvd_ex.f.htm
+    call get_svd(v,s,wt,covar)
 
-    ! Transposition of v,wt
-    ! right-hand coord
+    ! Transposition of v,wt 
+    ! http://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga0019443faea08275ca60a734d0593e60.html
+    call get_det(det_v,3,v)
+    call get_det(det_wt,3,wt)
+    if ( det_v * det_wt .lt. 0 ) then 
+        d = .false.
+    else 
+        d = .true.
+    end if
+
+    ! Right-hand coord
+    if (d) then 
+        s(3) = - s(3)
+        do i = 1, 3
+            v(i,3) = - v(i,3)
+        end do
+    end if
+
     ! Create Rotation matrix R
+    call get_dot_matrix(R,3,3,3,3,v,wt)
     return 
 end subroutine kabsch 
 
@@ -289,3 +307,67 @@ subroutine get_matrix_t(NAtoms,coord_t,coord)
     end do 
     return 
 end subroutine get_matrix_t
+
+subroutine get_svd(v,s,wt,covar)
+    implicit none 
+    real(8),dimension(3,3),intent(in)   :: covar
+    real(8),dimension(3),intent(inout)  :: s
+    real(8),dimension(3,3),intent(inout)    :: v,wt
+    !local variables 
+    integer(4)  :: LDA, LDU, LDVT
+    integer(4)  :: INFO, LWORK ! local scalars
+    integer(4),parameter  :: LWMAX=1000
+    real(8),dimension(LWMAX) :: WORK
+
+    LDA = 3
+    LDU = 3
+    LDVT = 3
+    ! query the optimal workspace 
+    LWORK = -1 
+    call DGESVD( 'All', 'All', 3, 3, covar, LDA, s, v, LDU, wt, LDVT, &
+                 WORK, LWORK, INFO )
+    LWORK = MIN( LWMAX, INT(WORK(1)))
+    ! compute SVD
+    call DGESVD( 'All', 'All', 3, 3, covar, LDA, s, v, LDU, wt, LDVT, &
+                 WORK, LWORK, INFO )
+    ! check for convergence 
+    if ( INFO .gt. 0 ) then 
+        write(*,*) 'The algorithm computing SVD failed to converge. get_svd()'
+        stop
+    end if
+    return 
+end subroutine get_svd
+
+!https://dualm.wordpress.com/2012/01/06/computing-determinant-in-fortran/
+subroutine get_det(det,dim,mat)
+    implicit none 
+    integer(4),intent(in)   :: dim 
+    real(8),dimension(dim,dim),intent(in)   :: mat
+    real(8),intent(out) :: det 
+    ! local variables 
+    integer(4)  :: LDA, INFO, i
+    integer(4),dimension(dim)   :: IPIV
+    real(8) :: sgn
+    real(8),dimension(dim,dim)  :: mat_copy
+
+    IPIV = 0
+    LDA = dim 
+    mat_copy = mat
+    call DGETRF(dim,dim,mat_copy,LDA,IPIV,INFO)
+    
+    det = 1.0D0 
+    do i = 1, dim 
+        det = det * mat_copy(i,i)
+    end do 
+
+    sgn = 1.0D0 
+    do i = 1, dim 
+        if ( IPIV(i) .ne. i ) then 
+            sgn = -sgn 
+        end if 
+    end do
+
+    det = sgn * det 
+
+    return 
+end subroutine get_det
