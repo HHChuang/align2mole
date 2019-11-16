@@ -35,6 +35,7 @@ def main():
     coord_ref_cen = coord_ref - centroid(coord_ref)
     # 4. Generate rotation matrix by Kabsch algorithm
     R = kabsch(coord_var_cen, coord_ref_cen)
+    
 
     # 5. Rotate and translate
     coord_var_shifted = np.dot(coord_var_cen,R) + trans
@@ -98,6 +99,7 @@ def kabsch(coord_var, coord_ref):
 
     # covariance matrix
     covar = np.dot(coord_var.T, coord_ref)
+    print(covar)
 
     # SVD  http://en.wikipedia.org/wiki/Kabsch_algorithm
     v, s, wt = np.linalg.svd(covar)
