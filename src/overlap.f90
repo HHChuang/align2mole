@@ -213,8 +213,8 @@ subroutine output_struc(NAtoms,coord_atoms,coord)
     filename='shifted.'//TRIM(ADJUSTL(buffer))
     write(buffer,*) NAtoms
     open(10,file=TRIM(filename),status='replace')
-    write(10,'(A)') TRIM(buffer)
-    write(10,'(A)') TRIM(filename)
+    write(10,'(A)') TRIM(ADJUSTL(buffer))
+    write(10,'(A)') TRIM(ADJUSTL(filename))
     do i = 1, NAtoms 
         write(buffer,*) TRIM(coord_atoms(i)),coord(i,1:3)
         write(10,'(2A,3(1X,ES20.10))') TRIM(buffer)
