@@ -104,11 +104,10 @@ def kabsch(coord_var, coord_ref):
     # SVD  http://en.wikipedia.org/wiki/Kabsch_algorithm
     v, s, wt = np.linalg.svd(covar)
 
-    # Transposition of v,wt
+    # proper/improper rotation, JCC 2004, 25, 1894.
     d = (np.linalg.det(v) * np.linalg.det(wt)) < 0.0
 
-    # right-hand coord
-    if d:
+    if d: # antialigns of the last singular vector
         s[-1] = -s[-1]
         v[:, -1] = -v[:, -1]
 
