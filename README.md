@@ -1,5 +1,5 @@
 # Rotation
-Overlap two rigid bodies by translation followed by rotation. c.f. chapter 5 of the author's dissertation.
+Overlap two rigid bodies by translation followed by rotation (Kabsch algorithm). 
 
 ## Exercise 
 
