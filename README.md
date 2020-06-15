@@ -1,25 +1,30 @@
 # Align two molecules 
 
+## Table of Content
+- [Align two molecules](#align-two-molecules)
+  - [Table of Content](#table-of-content)
+  - [Aim and References](#aim-and-references)
+  - [Usage](#usage)
+  - [Examples with Screenshots](#examples-with-screenshots)
+
+## Aim and References
 * Overlap two rigid bodies by translation followed by rotation (Kabsch algorithm). 
 * Supporting information of [Construction of Two-Dimensional Potential Energy Surfaces of Reactions with Post-Transition-State Bifurcations.][1]
 * Appendix A of author's dissertation.
+* **Author** : Hsiao-Han (Grace) Chuang
 
 [1]: https://pubs.acs.org/doi/10.1021/acs.jctc.0c00172
 
-## Content
-1. Usage
-2. Examples with screenshots
-
-### Usage
+## Usage
 
 - In /src, both `overlap.f90` and `overlap.py` do the same things; overlap two ridge bodies. 
 - Use `makefile` to compile Fortran code.
 
 - Input: 
-    1. structure to be varied: $1, extension: .xyz
-    2. reference structure; $2, extension: .xyz
+    1. Structure to be varied: $1, extension: .xyz
+    2. Reference structure; $2, extension: .xyz
 
-### Examples with screenshots 
+## Examples with Screenshots 
 
 Prepare two input files for program `overlap.py` or `overlap.f90`, and above input files follow the standard file format which can also be executed by general visualizer, like `jmol`. 
 
